@@ -1,0 +1,76 @@
+---
+output: html_document
+---
+  Relationship between transmission type and MPG
+=================================================
+
+Summary 
+--------
+The Motor Trends data were analyzed to study the effect of transmission type on miles per gallon (MPG) in this document. First, we performed a t-test to see if there is any significant difference of MPG between the automatic and manual cars. The analysis result shows there is significant difference. Seoncd, we quantified the effect of transmission type on mpg using a linear regression model. It is shown that manual transmission can increase the mpg by 2.936 when other factors are held constant. 
+
+Question 1: Automatic or manual transmission is better for higher MPG?
+-----------------------------------------------
+
+We first transform the Motor Trends data by converting the transmission,cyl,vs,gear,carb columns to factor variables. 
+
+```{r}
+library(plyr)
+cars <- mutate(mtcars,cyl=factor(cyl), vs=factor(vs),gear=factor(gear),carb=factor(carb),
+         am=factor(ifelse(am,"manual","automatic"), levels=c("automatic","manual")))
+```
+
+Then we obtain the mpg data for automatic and manual transmission from the data set. It appears that automatic transmission has higher mpg, as shown in Figure 1 in Appendix. We then perform the student t-test and the results 
+suggests that there is a significant difference since the pvalue is less than 0.05. 
+
+```{r}
+auto <- subset(cars,cars$am=="automatic",select=c(mpg))[,1]
+man <- subset(cars,cars$am=="manual",select=c(mpg))[,1]
+t.test(auto,man)
+```
+
+Question 2: the effect of transmission type on mpg
+--------------------------------------------------
+
+We further transform the data by centering the non-categorial data such as mpg,disp,hp,drat columns. 
+
+```{r}
+cars <- mutate(cars,wt=(wt-mean(wt)), qsec=(qsec-mean(qsec)), disp=(disp - mean(disp)),
+               hp=(hp - mean(hp)), drat=(drat-mean(drat)))      
+```
+
+The first model considers all the variables in the data as independent variable. For this model, F-statistics p-value is less than 0.05 but the p-value for the coefficients indiciate that the null hypothesis can not be rejected. 
+
+```{r}
+modelallfactor <- lm(mpg~.,data=cars)
+summary(modelallfactor)
+```
+
+Then we use the Akaike Information Criteria (AIC) to find a model that can be used to quantify the effect of transimission on mpg. Step function is used to compare the performance of different models. 
+
+```{r,echo=FALSE,message=FALSE,results='hide'}
+bestmodel <- step(modelallfactor)
+```
+
+The best model selected using step function consider "wt", "qsec" and "automatic" as the independent variables. The individual p-values for the model parameters suggest to reject the hypothesis that the coefficients are null. The parameter for manual transmission suggests the mpg increase 2.936 if manual transmission is used instead of automatic transmission. 
+```{r}
+summary(bestmodel)
+```
+The regression diagnostic plots for the best model is shown in Appendix.
+
+Appendix
+--------
+
+Summary for MPG Data
+
+```{r}
+summary(cars[cars$am == "Automatic",])
+summary(cars[cars$am == "Manual",])
+```
+
+```{r}
+boxplot(cars$mpg~cars$am,xlab="Transmission",ylab="MPG")
+```
+
+```{r}
+plot(bestmodel)
+```
